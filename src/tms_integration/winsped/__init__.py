@@ -1,0 +1,1 @@
+from .winsped import LisWinSped

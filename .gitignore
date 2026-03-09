@@ -1,0 +1,8 @@
+.venv
+/.env
+/data/
+/position_reports/
+/positions_PL.db
+/positions_UA.db
+/scripts/
+/.idea/
