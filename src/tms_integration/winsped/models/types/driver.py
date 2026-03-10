@@ -1,10 +1,15 @@
 from datetime import datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class Driver(BaseModel):
+    model_config = ConfigDict(
+        validate_assignment=True,
+        # Suppress serialization warnings
+        ser_json_timedelta="float",
+    )
     messageNumber: Literal["499"] = "499"
     stateDate: datetime
     stateTime: time

@@ -5,12 +5,9 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import requests
-from dotenv import load_dotenv
 
 from src.tms_integration.winsped.models.lisin import LisInDriver
 from src.tms_integration.winsped.models.types.driver import Driver
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +18,10 @@ class DriverTracker:
         api_key: str,
         api_name: str,
         drivers_ids_path: str,
-        lis_winsped,
-        fetch_interval_minutes: int = 10,
+        lis_winsped
     ):
         self.api_key = api_key
         self.api_name = api_name
-        self.fetch_interval_minutes = fetch_interval_minutes
         self.lis_winsped = lis_winsped
         self.running = True
         self.lock = threading.Lock()
@@ -35,11 +30,13 @@ class DriverTracker:
         self.latest_drivers: dict[str, Driver] = {}
         self._day_start_cache: dict[str, tuple[str, str | None]] = {}
         self.drivers_ids = self._load_driver_list(drivers_ids_path)
+
         logger.info(
             f"[{self.api_name}] DriverTracker initialized with {len(self.drivers_ids)} drivers"
         )
 
-    def _load_driver_list(self, path: str) -> list:
+    @staticmethod
+    def _load_driver_list(path: str) -> list:
         with open(path) as f:
             return json.load(f)
 
@@ -308,10 +305,7 @@ class DriverTracker:
         try:
             payload = LisInDriver()
             payload.records = drivers
-            # content = payload.generate_txt()
-            # with open("RESUT.txt", "w", encoding="cp1252") as f:
-            #    f.write(content)
-            # self.lis_winsped.import_location(payload, "499", self.api_name)
+            self.lis_winsped.import_to_ftp(payload, "499", country=self.api_name.split("_")[1])
             logger.info(f"[{self.api_name}] Sent {len(drivers)} driver records to FTP")
         except Exception as e:
             logger.error(f"[{self.api_name}] FTP send failed: {e}")
@@ -370,11 +364,11 @@ class DriverTracker:
         """Subtract seconds from an ISO 8601 date and return the new datetime object."""
         return DriverTracker._add_seconds_to_date(iso_date, -seconds)
 
-    def run(self):
+    def run(self, report_interval_minutes: int = 10):
         """Main loop — fetch all drivers every N minutes, send to FTP."""
         logger.info(
             f"[{self.api_name}] DriverTracker started. "
-            f"Fetching every {self.fetch_interval_minutes} minutes."
+            f"Fetching every {report_interval_minutes} minutes."
         )
 
         while self.running:
@@ -384,7 +378,7 @@ class DriverTracker:
             self._send_to_ftp()
 
             elapsed = time.time() - cycle_start
-            sleep_for = max(0, self.fetch_interval_minutes * 60 - elapsed)
+            sleep_for = max(0, report_interval_minutes * 60 - elapsed)
 
             logger.info(f"[{self.api_name}] Next fetch in {sleep_for / 60:.1f} minutes")
 

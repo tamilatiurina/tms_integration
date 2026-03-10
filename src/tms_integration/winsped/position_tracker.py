@@ -8,15 +8,10 @@ from datetime import datetime
 
 import sseclient
 
-from src.tms_integration.winsped import LisWinSped
 from src.tms_integration.winsped.models import LisInPosition
 from src.tms_integration.winsped.models.types import Position
+from tms_integration.winsped import LisWinSped
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 logger = logging.getLogger(__name__)
 
 
@@ -42,13 +37,13 @@ class PositionTracker:
 
         os.makedirs(self.output_dir, exist_ok=True)
 
-        self.init_database()
+        self._init_database()
 
-        self.load_existing_positions()
+        self._load_existing_positions()
 
         logger.info(f"Tracker initialized for API: {api_name}")
 
-    def init_database(self):
+    def _init_database(self):
         """Initialize SQLite database with only required fields"""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("PRAGMA journal_mode = WAL")
@@ -76,7 +71,7 @@ class PositionTracker:
 
         logger.info(f"Database initialized for {self.api_name} at {self.db_path}")
 
-    def load_existing_positions(self):
+    def _load_existing_positions(self):
         """Load existing positions from database on startup"""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -109,7 +104,7 @@ class PositionTracker:
         except Exception as e:
             logger.error(f"Error loading existing positions for {self.api_name}: {e}")
 
-    def process_event(self, event_data: str):
+    def _process_event(self, event_data: str):
         """Process incoming SSE event data"""
         try:
             data = json.loads(event_data)
@@ -152,7 +147,7 @@ class PositionTracker:
         except Exception as e:
             logger.error(f"[{self.api_name}] Error processing event: {e}")
 
-    def save_to_database(self):
+    def _save_to_database(self):
         """Save all latest positions to database - only required fields"""
         with self.lock:
             if not self.latest_positions:
@@ -198,7 +193,7 @@ class PositionTracker:
                 f"[{self.api_name}] Saved {len(self.latest_positions)} vehicles to database in {elapsed:.3f} seconds"
             )
 
-    def report_scheduler(self, interval_minutes: int = 10):
+    def _report_scheduler(self, interval_minutes: int = 10):
         """Generate reports at regular intervals"""
         logger.info(
             f"[{self.api_name}] Report scheduler started. Generating reports every {interval_minutes} minutes"
@@ -215,12 +210,10 @@ class PositionTracker:
                     f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [{self.api_name}] Generating scheduled report..."
                 )
 
-                self.save_to_database()
-                # self.generate_txt_report()
-                self.send_to_ftp(self.lis_winsped)
-                # self.cleanup_old_reports()
+                self._save_to_database()
+                self._send_to_ftp(self.lis_winsped)
 
-    def send_to_ftp(self, lis_winsped: LisWinSped):
+    def _send_to_ftp(self, lis_winsped: LisWinSped):
         with self.lock:
             if not self.latest_positions:
                 logger.warning(f"[{self.api_name}] No positions to send")
@@ -252,114 +245,11 @@ class PositionTracker:
 
             payload = LisInPosition()
             payload.records = positions
-            lis_winsped.import_location(payload, "15", self.api_name)
+            lis_winsped.import_to_ftp(payload, "15", country=self.api_name.split("_")[1])
             logger.info(f"[{self.api_name}] Sent {len(positions)} positions to FTP")
 
-    '''
-    def generate_txt_report(self):
-        """Generate a text file with latest positions of all vehicles in the required format"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"vehicle_positions_{timestamp}.txt"
-        filepath = os.path.join(self.output_dir, filename)
 
-        with self.lock:
-            if not self.latest_positions:
-                content = "No vehicle data available yet.\n"
-            else:
-                lines = []
-
-                for object_id, data in self.latest_positions.items():
-                    position = data.get('position', {})
-
-                    lat = position.get('latitude')
-                    lon = position.get('longitude')
-
-                    api_datetime = data.get('datetime', '')
-
-                    date_str, time_str = self.convert_datetime(api_datetime)
-
-                    lat_formatted = self.format_coordinate(lat, 'lat')
-                    lon_formatted = self.format_coordinate(lon, 'lon')
-
-                    line = (f"15|{date_str}|{time_str}|{object_id}|0|PosBreite={lat_formatted}|PosLaenge={lon_formatted}|")
-
-                    lines.append(line)
-
-                content = "\n".join(lines)
-
-            with open(filepath, 'w') as f:
-                f.write(content)
-
-            # create a symlink or copy to "15_ua.txt" for easy access
-            latest_link = os.path.join(self.output_dir, f"15_{self.api_name}.txt")
-            try:
-                if os.path.exists(latest_link):
-                    os.remove(latest_link)
-                os.symlink(filename, latest_link)
-            except:
-                with open(latest_link, 'w') as f:
-                    f.write(content)
-
-            logger.info(f"Generated report: {filename} with {len(self.latest_positions)} vehicles")
-            return filepath
-
-    def convert_datetime(self, api_datetime):
-        """Convert API datetime format to required formats"""
-        if not api_datetime:
-            return "20000101", "000000"
-
-        try:
-            dt = datetime.fromisoformat(api_datetime.replace('Z', '+00:00'))
-
-            date_str = dt.strftime("%Y%m%d")
-
-            time_str = dt.strftime("%H%M%S")
-
-            return date_str, time_str
-        except:
-            return "20000101", "000000"
-
-    def format_coordinate(self, coord, coord_type):
-        """Convert decimal coordinate to GGGNNNND format"""
-        if coord is None:
-            return "0000000N" if coord_type == 'lat' else "0000000E"
-
-        try:
-            coord = float(coord)
-            if coord_type == 'lat':
-                direction = 'N' if coord >= 0 else 'S'
-                coord = abs(coord)
-            else:
-                direction = 'E' if coord >= 0 else 'W'
-                coord = abs(coord)
-
-            degrees = int(coord)
-            decimals = int(round((coord - degrees) * 10000))
-
-            # Format: GGG = 3-digit degrees, NNNN = 4-digit decimals
-            # Example: 52.2735 -> degrees=52, decimals=2735 -> "0522735N"
-            formatted = f"{degrees:03d}{decimals:04d}{direction}"
-
-            return formatted
-        except (ValueError, TypeError):
-            return "0000000N" if coord_type == 'lat' else "0000000E"
-    
-    
-    def cleanup_old_reports(self, keep_last: int = 0):
-        """Delete old report files to save space"""
-        try:
-            files = [f for f in os.listdir(self.output_dir)
-                     if f.startswith(f'vehicle_positions_{self.api_name}_') and f.endswith('.txt')]
-            files.sort(reverse=True)
-
-            for old_file in files[keep_last:]:
-                os.remove(os.path.join(self.output_dir, old_file))
-                logger.debug(f"[{self.api_name}] Removed old report: {old_file}")
-        except Exception as e:
-            logger.error(f"[{self.api_name}] Error cleaning up old reports: {e}")
-    '''
-
-    def sse_listener(self):
+    def _sse_listener(self):
         """Listen to SSE stream and process events"""
         url = (
             f"https://api.fm-track.com/object-coordinates-stream"
@@ -384,7 +274,7 @@ class PositionTracker:
                         break
 
                     if event.data:
-                        self.process_event(event.data)
+                        self._process_event(event.data)
 
             except Exception as e:
                 logger.error(f"[{self.api_name}] SSE connection error: {e}")
@@ -402,13 +292,13 @@ class PositionTracker:
         )
         self.running = False
 
-        self.save_to_database()
+        self._save_to_database()
 
         logger.info(f"[{self.api_name}] Final report generated. Goodbye!")
 
     def run(self, report_interval_minutes: int = 10):
         """Start both the SSE listener and report scheduler"""
-        listener_thread = threading.Thread(target=self.sse_listener, daemon=True)
+        listener_thread = threading.Thread(target=self._sse_listener, daemon=True)
         listener_thread.start()
 
-        self.report_scheduler(report_interval_minutes)
+        self._report_scheduler(report_interval_minutes)

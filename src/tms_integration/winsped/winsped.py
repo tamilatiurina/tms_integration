@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+from pathlib import Path
 
 from pydantic.dataclasses import dataclass
 
@@ -21,7 +22,7 @@ class LisWinSped(FtpBase):
     """
     import_dest_folder: str
 
-    def import_file(self, payload: LisIn, message_number: str, country: str) -> None:
+    def import_to_ftp(self, payload: LisIn, message_number: str, country: str) -> None:
         """
         Generate WinSped format file and upload to FTP server
 
@@ -43,11 +44,15 @@ class LisWinSped(FtpBase):
         filepath = os.path.join(tempfile.gettempdir(), filename)
 
         try:
-            # Generate WinSped format file
             with open(filepath, mode="w", encoding="cp1252") as f:
                 f.write(payload.generate_txt())
 
-            # Upload to FTP server
+            #save locally
+            #local_path = Path(__file__).resolve().parent.parent.parent / filename
+            #with open(local_path, "w", encoding="cp1252") as f:
+            #    f.write(payload.generate_txt())
+            #print(f"Saved locally: {local_path}")
+
             self.import_file(filepath, self.import_dest_folder)
 
             logger.info(
@@ -62,7 +67,6 @@ class LisWinSped(FtpBase):
             logger.error(f"Failed to import location for {country}: {e}")
             raise
         finally:
-            # Clean up temporary file
             if os.path.exists(filepath):
                 try:
                     os.unlink(filepath)

@@ -8,13 +8,7 @@ from src.tms_integration.winsped import LisWinSped
 from src.tms_integration.winsped.driver_tracker import DriverTracker
 from src.tms_integration.winsped.position_tracker import PositionTracker
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 logger = logging.getLogger(__name__)
-
 
 class MultiAPITracker:
     def __init__(self, lis_winsped: LisWinSped):
@@ -27,7 +21,10 @@ class MultiAPITracker:
         signal.signal(signal.SIGTERM, self.signal_handler)
 
     def add_position_tracker(
-        self, api_key: str, api_name: str, report_interval: int = 10
+        self,
+        api_key: str,
+        api_name: str,
+        report_interval: int = 10
     ):
         """Add a new tracker for an API key"""
         tracker = PositionTracker(
@@ -65,7 +62,7 @@ class MultiAPITracker:
                 tracker.run(report_interval_minutes=interval)
             elif isinstance(tracker, DriverTracker):
                 logger.info(f"Running DriverTracker: {tracker.api_name}")
-                tracker.run()
+                tracker.run(report_interval_minutes=interval)
             else:
                 raise TypeError(f"Unknown tracker type: {type(tracker)}")
         except Exception as e:

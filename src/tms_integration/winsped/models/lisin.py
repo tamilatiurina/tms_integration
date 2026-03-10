@@ -13,7 +13,7 @@ class LisIn(BaseModel):
         raise NotImplementedError
 
     @staticmethod
-    def model_to_line(model):
+    def model_to_line(model, time_format: str = "%H%M%S"):
         PREFIXED_FIELDS = {
             "posBreite": "PosBreite",
             "posLaenge": "PosLaenge",
@@ -48,7 +48,7 @@ class LisIn(BaseModel):
                 else:
                     field_value = field_value.strftime("%Y%m%d %H%M%S")
             elif isinstance(field_value, time):
-                field_value = field_value.strftime("%H%M")
+                field_value = field_value.strftime(time_format)
 
             if field_key in PREFIXED_FIELDS:
                 fields.append(
@@ -66,7 +66,6 @@ class LisIn(BaseModel):
             lines.append(self.model_to_line(record))
         return "\n".join(lines)
 
-
 class LisInPosition(LisIn):
     mandatory_records_type: list = [Position]
 
@@ -75,6 +74,15 @@ class LisInPosition(LisIn):
         types_missing = set(self.mandatory_records_type) - records_type
         if types_missing:
             raise ValueError(f"Some mandatory types are missing: {types_missing}")
+
+    def generate_txt(self) -> str:
+        """Generate text with position time format (%H%M%S)"""
+        self.validate_records()
+        lines = []
+        for record in self.records:
+            # Use %H%M%S for position time
+            lines.append(self.model_to_line(record, time_format="%H%M%S"))
+        return "\n".join(lines)
 
 
 class LisInDriver(LisIn):
@@ -85,3 +93,11 @@ class LisInDriver(LisIn):
         types_missing = set(self.mandatory_records_type) - records_type
         if types_missing:
             raise ValueError(f"Some mandatory types are missing: {types_missing}")
+
+    def generate_txt(self) -> str:
+        """Generate text with driver time format (%H%M)"""
+        self.validate_records()
+        lines = []
+        for record in self.records:
+            lines.append(self.model_to_line(record, time_format="%H%M"))
+        return "\n".join(lines)

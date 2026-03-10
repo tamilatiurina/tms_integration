@@ -1,24 +1,9 @@
-import json
-import os
 from datetime import datetime, time
 from typing import Literal
 
-from dotenv import load_dotenv
 from pydantic import BaseModel, field_validator
 
-load_dotenv()
-
-
-def load_id_map(env_var: str) -> dict:
-    path = os.getenv(env_var)
-    if not path:
-        raise ValueError(f"{env_var} not set in environment")
-    with open(path) as f:
-        return json.load(f)
-
-
-VALID_PARTNER_IDS_UA = load_id_map("VEHICLE_ID_UA_MAP_PATH")
-VALID_PARTNER_IDS_PL = load_id_map("VEHICLE_ID_PL_MAP_PATH")
+from tms_integration.utils.config import get_all_valid_partner_ids
 
 
 class Position(BaseModel):
@@ -47,8 +32,12 @@ class Position(BaseModel):
     @field_validator("partnerId", mode="before")
     @staticmethod
     def validate_partnerId(value):
-        if value not in VALID_PARTNER_IDS_UA and value not in VALID_PARTNER_IDS_PL:
-            raise ValueError(f"Invalid partnerId: {value} not found in id map")
+        valid_ids = get_all_valid_partner_ids()
+
+        if value not in valid_ids:
+            raise ValueError(
+                f"Invalid partnerId: {value} not found in configured ID maps"
+            )
         return value
 
     @field_validator("posBreite", mode="before")
