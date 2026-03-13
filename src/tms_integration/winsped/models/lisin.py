@@ -66,6 +66,7 @@ class LisIn(BaseModel):
             lines.append(self.model_to_line(record))
         return "\n".join(lines)
 
+
 class LisInPosition(LisIn):
     mandatory_records_type: list = [Position]
 

@@ -22,20 +22,16 @@ class PositionTracker:
         api_key: str,
         api_name: str,
         db_path: str = None,
-        output_dir: str = "position_reports",
     ):
         self.lis_winsped = lis_winsped
         self.api_key = api_key
         self.api_name = api_name
         self.db_path = db_path or f"positions_{api_name}.db"
-        self.output_dir = os.path.join(output_dir, api_name)
         self.latest_positions: dict[str, dict] = {}
         self.last_update_time: dict[str, datetime] = {}
         self.lock = threading.Lock()
         self.running = True
         self.update_counter = 0
-
-        os.makedirs(self.output_dir, exist_ok=True)
 
         self._init_database()
 
@@ -245,9 +241,10 @@ class PositionTracker:
 
             payload = LisInPosition()
             payload.records = positions
-            lis_winsped.import_to_ftp(payload, "15", country=self.api_name.split("_")[1])
+            lis_winsped.import_to_ftp(
+                payload, "15", country=self.api_name.split("_")[1]
+            )
             logger.info(f"[{self.api_name}] Sent {len(positions)} positions to FTP")
-
 
     def _sse_listener(self):
         """Listen to SSE stream and process events"""

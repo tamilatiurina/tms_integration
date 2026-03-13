@@ -23,6 +23,7 @@ classifiers = [
 ]
 
 dependencies = [
+  "auto_mix_prep~=0.2.0",
   "python-dotenv",
   "requests>=2.31",
   "loguru>=0.7",
@@ -30,7 +31,8 @@ dependencies = [
   "pydantic>=2",
   "tyro",
   "ruff>=0.12.12",
-  "pyarrow>=14.0.0"
+  "pyarrow>=14.0.0",
+  "sseclient-py>=1.7.0",
 ]
 
 [project.optional-dependencies]

@@ -13,13 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class DriverTracker:
-    def __init__(
-        self,
-        api_key: str,
-        api_name: str,
-        drivers_ids_path: str,
-        lis_winsped
-    ):
+    def __init__(self, api_key: str, api_name: str, drivers_ids_path: str, lis_winsped):
         self.api_key = api_key
         self.api_name = api_name
         self.lis_winsped = lis_winsped
@@ -97,9 +91,7 @@ class DriverTracker:
     def _get_driver_day_start(self, driver_id: str, now: datetime) -> str | None:
         url = f"https://api.fm-track.com/driverstate/{driver_id}"
 
-        start_of_day = datetime(
-            year=now.year, month=now.month, day=now.day, tzinfo=UTC
-        )
+        start_of_day = datetime(year=now.year, month=now.month, day=now.day, tzinfo=UTC)
 
         from_datetime = start_of_day.isoformat().replace("+00:00", "Z")
         to_datetime = now.isoformat().replace("+00:00", "Z")
@@ -305,7 +297,9 @@ class DriverTracker:
         try:
             payload = LisInDriver()
             payload.records = drivers
-            self.lis_winsped.import_to_ftp(payload, "499", country=self.api_name.split("_")[1])
+            self.lis_winsped.import_to_ftp(
+                payload, "499", country=self.api_name.split("_")[1]
+            )
             logger.info(f"[{self.api_name}] Sent {len(drivers)} driver records to FTP")
         except Exception as e:
             logger.error(f"[{self.api_name}] FTP send failed: {e}")

@@ -1,6 +1,7 @@
 import ftplib
 import logging
 import os
+
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 
@@ -9,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 class FtpConfig(BaseModel):
     """FTP configuration"""
+
     host: str
     port: int = 21
     username: str | None = None
@@ -22,6 +24,7 @@ class FtpConfig(BaseModel):
 @dataclass
 class FtpBase:
     """Base class for FTP operations"""
+
     config: FtpConfig
 
     def _get_connection(self) -> ftplib.FTP:
@@ -36,14 +39,9 @@ class FtpBase:
         """
         ftp = ftplib.FTP()
         ftp.connect(
-            host=self.config.host,
-            port=self.config.port,
-            timeout=self.config.timeout
+            host=self.config.host, port=self.config.port, timeout=self.config.timeout
         )
-        ftp.login(
-            user=self.config.username,
-            passwd=self.config.password
-        )
+        ftp.login(user=self.config.username, passwd=self.config.password)
         return ftp
 
     def import_file(self, source_filepath: str, dest_path: str) -> None:

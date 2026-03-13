@@ -10,6 +10,7 @@ from src.tms_integration.winsped.position_tracker import PositionTracker
 
 logger = logging.getLogger(__name__)
 
+
 class MultiAPITracker:
     def __init__(self, lis_winsped: LisWinSped):
         self.lis_winsped = lis_winsped
@@ -21,10 +22,7 @@ class MultiAPITracker:
         signal.signal(signal.SIGTERM, self.signal_handler)
 
     def add_position_tracker(
-        self,
-        api_key: str,
-        api_name: str,
-        report_interval: int = 10
+        self, api_key: str, api_name: str, report_interval: int = 10
     ):
         """Add a new tracker for an API key"""
         tracker = PositionTracker(
@@ -52,9 +50,7 @@ class MultiAPITracker:
         logger.info(f"Added tracker for API: {api_name}")
         return tracker
 
-    def run_tracker(
-        self, tracker: PositionTracker | DriverTracker, interval: int
-    ):
+    def run_tracker(self, tracker: PositionTracker | DriverTracker, interval: int):
         """Run a single tracker in its own thread"""
         try:
             if isinstance(tracker, PositionTracker):

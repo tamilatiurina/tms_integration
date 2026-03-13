@@ -20,6 +20,7 @@ class LisWinSped(FtpBase):
     Inherits all FTP operations from FtpBase and adds business logic
     specific to WinSped integration.
     """
+
     import_dest_folder: str
 
     def import_to_ftp(self, payload: LisIn, message_number: str, country: str) -> None:
@@ -34,7 +35,7 @@ class LisWinSped(FtpBase):
         Example:
             >>> lis_winsped = LisWinSped(
             ...     config=FtpConfig(host="...", username="...", password="..."),
-            ...     import_dest_folder="/imports"
+            ...     import_dest_folder="/imports",
             ... )
             >>> payload = LisInPosition()
             >>> payload.records = [...]
@@ -47,11 +48,11 @@ class LisWinSped(FtpBase):
             with open(filepath, mode="w", encoding="cp1252") as f:
                 f.write(payload.generate_txt())
 
-            #save locally
-            #local_path = Path(__file__).resolve().parent.parent.parent / filename
-            #with open(local_path, "w", encoding="cp1252") as f:
+            # save locally
+            # local_path = Path(__file__).resolve().parent.parent.parent / filename
+            # with open(local_path, "w", encoding="cp1252") as f:
             #    f.write(payload.generate_txt())
-            #print(f"Saved locally: {local_path}")
+            # print(f"Saved locally: {local_path}")
 
             self.import_file(filepath, self.import_dest_folder)
 

@@ -39,6 +39,7 @@ def get_lis_winsped():
         multi_tracker = MultiAPITracker(lis_winsped=lis_winsped)
     """
     from src.tms_integration.winsped.winsped import LisWinSped
+
     return LisWinSped(
         config=get_ftp_config(),
         import_dest_folder=os.getenv("FTP_IMPORT_FOLDER"),
@@ -128,7 +129,9 @@ def get_tracker_config() -> list[dict[str, Any]]:
     ]:
         api_key = os.getenv(api_key_env)
         drivers_path_relative = os.getenv(path_env)
-        drivers_path = Path(__file__).resolve().parent.parent.parent.parent / drivers_path_relative
+        drivers_path = (
+            Path(__file__).resolve().parent.parent.parent.parent / drivers_path_relative
+        )
         if api_key and drivers_path:
             config.append(
                 {
@@ -140,6 +143,7 @@ def get_tracker_config() -> list[dict[str, Any]]:
             )
 
     return config
+
 
 def validate_config() -> bool:
     """Validate all required environment variables"""
@@ -154,7 +158,7 @@ def validate_config() -> bool:
         "DRIVER_ID_PATH_UA",
         "DRIVER_ID_PATH_PL",
         "VEHICLE_ID_MAP_PATH_UA",
-        "VEHICLE_ID_MAP_PATH_PL"
+        "VEHICLE_ID_MAP_PATH_PL",
     ]
 
     missing = [var for var in required_env_vars if not os.getenv(var)]
